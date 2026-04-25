@@ -1,0 +1,456 @@
+{
+  "name": "Agent_Evaluation_Pipeline-04242026",
+  "nodes": [
+    {
+      "parameters": {
+        "source": "googleSheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk",
+          "mode": "list",
+          "cachedResultName": "EmailEvaluation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk/edit#gid=0"
+        }
+      },
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        -720,
+        -112
+      ],
+      "id": "83b79cd4-0544-472e-95fa-0361153ed0e5",
+      "name": "When fetching a dataset row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O5AM7nRiII6XmfBM",
+          "name": "Google Sheets account Divakar Lakshmanan"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "359fb05d-7735-4052-b6a2-1ac08a288374",
+              "name": "prompt",
+              "value": "=Please analyze this email and assign ONE category and ONE priority level.  Subject: {{$json.Subject}} Body: {{$json.Body}}  Respond with ONLY a JSON object in this exact format: {   \"category\": \"<one of: billing, inquiry, technical, followup, complaint>\",   \"priority\": \"<one of: low, medium, high>\" }",
+              "type": "string"
+            },
+            {
+              "id": "5940de62-fe6b-4c9d-a5ef-cb64457c39d7",
+              "name": "expectedCategory",
+              "value": "={{ $json['Expected Category'] }}",
+              "type": "string"
+            },
+            {
+              "id": "74fe9d48-26fc-453c-8436-7a8a2cbe23f7",
+              "name": "expectedPriority",
+              "value": "={{ $json['Expected Priority'] }}",
+              "type": "string"
+            },
+            {
+              "id": "bac4c302-94f0-4bd2-9865-e1525bb96d91",
+              "name": "row_id",
+              "value": "={{ $json.row_number }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        -112
+      ],
+      "id": "11622718-cc19-488f-b0dd-16ed010f1a48",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        -288
+      ],
+      "id": "e1b0cd96-7fbc-4dca-b597-ebdd12753e99",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mOXEycOxJbyO5Pap",
+          "name": "Gmail account Divakar Lakshmanan"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        112
+      ],
+      "id": "2509734c-faa3-4c08-8427-06d546533eba",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "DegyWyKAEpR21hkZ",
+          "name": "OpenAi account-Paid-10$ Limit - Divakar Lakshmanan"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {
+          "maxTokens": -1,
+          "temperature": 0.7,
+          "topP": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        112
+      ],
+      "id": "aab06272-1c0b-4c32-8a22-10dcdba65b5f",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "dnr44zDXysJf9uew",
+          "name": "OpenRouter chat Model creds - use only for free models"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "setMetrics",
+        "metric": "categorization",
+        "expectedAnswer": "={{ $('Edit Fields').item.json.expectedCategory }}",
+        "actualAnswer": "={{ $json.category }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        400,
+        -240
+      ],
+      "id": "5e110238-d5ef-41a3-b195-ea29f30ef553",
+      "name": "Category"
+    },
+    {
+      "parameters": {
+        "operation": "setMetrics",
+        "metric": "customMetrics",
+        "metrics": {
+          "assignments": [
+            {
+              "name": "Priority",
+              "value": "={{ $('Set Outputs').item.json.priority_match }}",
+              "type": "number",
+              "id": "edaecd77-9481-4ee9-8d6e-6975e4df41ba"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        576,
+        -240
+      ],
+      "id": "d0443f09-1fc2-410d-963b-fdc9608049a7",
+      "name": "Priority"
+    },
+    {
+      "parameters": {
+        "source": "googleSheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk",
+          "mode": "list",
+          "cachedResultName": "EmailEvaluation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Email",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1w5b09zYhnyKqweFJixm7Gt4ofTXIJyXenyuBJxEQwMk/edit#gid=0"
+        },
+        "outputs": {
+          "values": [
+            {
+              "outputName": "Actual Category",
+              "outputValue": "={{ $json.category }}"
+            },
+            {
+              "outputName": "Actual Priority",
+              "outputValue": "={{ $json.priority }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        240,
+        -240
+      ],
+      "id": "6f764142-fcb0-4222-8644-d2ea3f0fb47d",
+      "name": "Set Outputs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O5AM7nRiII6XmfBM",
+          "name": "Google Sheets account Divakar Lakshmanan"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "checkIfEvaluating"
+      },
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        -80,
+        -112
+      ],
+      "id": "0274b7e7-7134-4071-b966-62d17758f266",
+      "name": "Evaluation"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an email tagging agent. Your job is to analyze email subject lines and bodies, then assign a category and priority level.\n\nRules:\n- Respond ONLY with valid JSON\n- No additional text or explanations\n- Be consistent and logical\n- Consider both subject and body content\n- Category must be one of: billing, inquiry, technical, followup, complaint\n- Priority must be one of: low, medium, high"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -368,
+        -112
+      ],
+      "id": "cf115d6c-281d-44dc-85f2-ab20bb5dd8ce",
+      "name": "Tagging Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"billing\", \"inquiry\", \"technical\", \"followup\", \"complaint\"],\n      \"description\": \"Email category\"\n    },\n    \"priority\": {\n      \"type\": \"string\",\n      \"enum\": [\"low\", \"medium\", \"high\"],\n      \"description\": \"Priority level\"\n    }\n  },\n  \"required\": [\"category\", \"priority\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "40d85e3e-4a55-4f0d-9a8f-df776bf1b90b",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c70ec9a2-86ae-4194-a265-0cb919d851d6",
+              "name": "category_match",
+              "value": "={{$('Edit Fields').item.json.expectedCategory === $json.output.category ? 1 : 0}}",
+              "type": "string"
+            },
+            {
+              "id": "370e2dd9-1dcf-4edf-9954-e59c75fa0c58",
+              "name": "priority_match",
+              "value": "={{$('Edit Fields').item.json.expectedPriority === $json.output.priority ? 1 : 0}}",
+              "type": "string"
+            },
+            {
+              "id": "f21851cf-999e-43e4-8923-df7395b0ccde",
+              "name": "both_match",
+              "value": "={{ ($('Edit Fields').item.json.expectedCategory === $json.output.category) && ($('Edit Fields').item.json.expectedPriority === $json.output.priority) ? 1: 0 }}",
+              "type": "string"
+            },
+            {
+              "id": "0816e3ac-42ce-4f1c-a185-e75df0186206",
+              "name": "category",
+              "value": "={{ $json.output.category }}",
+              "type": "string"
+            },
+            {
+              "id": "5e3a9505-5e4b-4ddc-91b4-5689234eb4b9",
+              "name": "priority",
+              "value": "={{ $json.output.priority }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        -240
+      ],
+      "id": "8d4dd1d3-ebdc-44f4-9316-2b8d1aba9684",
+      "name": "Calculate Metrics"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When fetching a dataset row": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Tagging Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Tagging Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Category": {
+      "main": [
+        [
+          {
+            "node": "Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Outputs": {
+      "main": [
+        [
+          {
+            "node": "Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tagging Agent": {
+      "main": [
+        [
+          {
+            "node": "Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Tagging Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Set Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4ab78a41-f109-4114-85c8-c59628c451cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "966c9717c649ff58138114ad4ec0792ba6c6dbbaefbc75a95d7e5ed34f041958"
+  },
+  "id": "Zwto7pl4hJsaNPRr",
+  "tags": []
+}
